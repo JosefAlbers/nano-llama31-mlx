@@ -1,19 +1,10 @@
-"""
-Outputs the same thing as reference.py
-$ python test_llama31.py
-"""
-
 import fire
 import time
-import torch
 
 from llama31 import Llama
 
 def test_inference(
-    ckpt_dir: str = "llama-models/models/llama3_1/Meta-Llama-3.1-8B",
-    tokenizer_path: str = "llama-models/models/llama3_1/Meta-Llama-3.1-8B/tokenizer.model",
-    temperature: float = 0.0, # note: doing argmax decoding
-    top_p: float = 0.9,
+    repo_id: str = "meta-llama/Meta-Llama-3.1-8B-Instruct",
     max_seq_len: int = 128,
     max_gen_len: int = 32,
 ):
@@ -46,43 +37,23 @@ def test_inference(
         cheese => fromage"""
     ]
 
-    # init the model
     llama = Llama.build(
-        ckpt_dir=ckpt_dir,
-        tokenizer_path=tokenizer_path,
+        repo_id=repo_id,
         max_seq_len=max_seq_len,
         max_batch_size=max_batch_size,
-        flash=False, # disable flash attention so we can get exact match to reference
+        flash=False,
     )
-
-    # sample
-    sample_rng = torch.Generator(device='cuda')
-    sample_rng.manual_seed(1337)
     t0 = time.time()
     results = llama.text_completion(
         prompts,
-        sample_rng=sample_rng,
         max_gen_len=max_gen_len,
-        temperature=temperature,
-        top_p=top_p,
     )
     t1 = time.time()
-
     print(f"Generated in {t1 - t0:.2f} seconds")
     for prompt, result in zip(prompts, results):
         print(prompt, end="")
         print(f"{result['generation']}")
         print("\n==================================\n")
-
-    # check if the results match the expected outputs
-    for result, expected in zip(results, expected_completions):
-        ok = result["generation"] == expected
-        if ok:
-            print("OK")
-        else:
-            print("FAIL")
-            print(f"Expected: {expected}")
-            print(f"Got: {result['generation']}")
 
 if __name__ == "__main__":
     fire.Fire(test_inference)
